@@ -1,0 +1,23 @@
+[EmbeddedGNU]
+Version=0.92
+[Project]
+Name=HelloWorld
+Switches=-Os -fno-ident -fno-common -fomit-frame-pointer -mshort -fsigned-char
+MakeWithGEL=0
+Profile=evbplus2
+UnitCount=6
+[Unit1]
+FileName=isr_vectors.c
+[Unit2]
+FileName=lcd.c
+[Unit3]
+FileName=lcd.h
+[Unit4]
+FileName=main.c
+[Unit5]
+FileName=pll.c
+[Unit6]
+FileName=pll.h
+[crc32]
+HelloWorld.mak=$1B38782F
+memory.x=$542FE7DE

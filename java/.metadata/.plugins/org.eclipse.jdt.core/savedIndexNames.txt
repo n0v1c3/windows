@@ -1,0 +1,6 @@
+INDEX VERSION 1.126+C:\Mount\Field - Backup\development\java\.metadata\.plugins\org.eclipse.jdt.core
+171073410.index
+3138145768.index
+1257358601.index
+630181877.index
+3310681149.index
