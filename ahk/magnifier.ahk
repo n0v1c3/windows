@@ -27,14 +27,24 @@ ANTIALIZE_INIT := 1
 ; ---
 
 ; SystemParametersInfo
-DLL_SPI := "SystemParametersInfo"
 DLL_SPI_MOUSESPEED = 113
+
+DLL_GDC := "GetDC"
+
+DLL_SSBM := "gdi32.dll\SetStretchBltMode"
+
+DLL_SB := "gdi32.dll\StretchBlt"
+
+DLL_SPI := "SystemParametersInfo"
+DLL_SPI_GETMOUSESPEED = 0x70
+DLL_SPI_SETMOUSESPEED = 0x71
 
 ; ---
 ; Mouse
 ; ---
 
-MOUSE_SPEED_INIT := 10
+MOUSE_MIN := 3
+MOUSE_OVERRIDE_ENABLED_INIT := 0
 
 ; ---
 ; Window
@@ -43,9 +53,9 @@ MOUSE_SPEED_INIT := 10
 GUI_WIN_BACKGROUND := ffffff
 GUI_WIN_COMP_BACKGROUND := f3ffff
 GUI_WIN_INIT_OFFSET := 10000
-GUI_WIN_WIDTH_INIT := 128
-GUI_WIN_HEIGHT_INIT := 128
-GUI_WIN_REPAINT_DELAY_INIT := 1
+GUI_WIN_WIDTH_INIT := 150
+GUI_WIN_HEIGHT_INIT := 150
+GUI_WIN_REPAINT_DELAY_INIT := 100
 GUI_WIN_MOUSE_OFFSET_INIT := 25
 GUI_WIN_MOUSE_OFFSET_ADJUST := 8
 GUI_WIN_ENABLED_INIT := 1
@@ -57,6 +67,8 @@ GUI_WIN_NAME_INIT := "Magnifier"
 ; ---
 
 ZOOM_LEVEL_INIT := 2
+ZOOM_LEVEL_MAX := 10
+ZOOM_LEVEL_MIN := 1
 
 ; ===
 ; Variables
@@ -73,8 +85,12 @@ antialize := ANTIALIZE_INIT
 ; Mouse
 ; ---
 
+; Retrieve the current speed so that it can be restored later:
+DllCall(DLL_SPI, UInt, DLL_SPI_GETMOUSESPEED, UInt, 0, UIntP, mouseSensitivityOriginal, UInt, 0)
+mouseOverrideEnabled := MOUSE_OVERRIDE_ENABLED_INIT
+
 ; Range {1..20}
-MouseSpeed := MOUSE_SPEED_INIT
+mouseSensitivityMultiplier := mouseSensitivityOriginal / ZOOM_LEVEL_MAX 
 
 ; ---
 ; Windown
@@ -100,7 +116,7 @@ zoom :=  ZOOM_LEVEL_INIT
 ; ===
 
 ; Create a window to display magnification
-Gui +E0x20 -Caption +AlwaysOnTop -Resize +ToolWindow
+Gui +E0x20 -Caption +AlwaysOnTop -Resize +ToolWindow +Border
 Gui Color, %GUI_WIN_BACKGROUND%, %GUI_WIN_COMP_BACKGROUND%
 
 ; Display window, initialize off screen to prevent "flicker"
@@ -112,58 +128,60 @@ WinGet screenID, id
 
 ; Configure window, components, and screen for transparancy
 ;WinSet Transparent, 0, %winName%;%WindowTrans%, %winID% ; Confirm what this line was doing
-WinSet TransColor, %GUI_WIN_COMP_BACKGROUND%, %winID%
-WinSet TransColor, %GUI_WIN_COMP_BACKGROUND%, %screenID%
+;WinSet TransColor, %GUI_WIN_COMP_BACKGROUND%, %winID%
+;WinSet TransColor, %GUI_WIN_COMP_BACKGROUND%, %screenID%
 
 ; Adjust shape of the window
 ;WinSet, Region, 10-30 W128 H128 E, %winName%
 
 ; Get handles to the device context (DC) for the window and screen
-winDC := DllCall("GetDC", UInt, winID)
-screenDC := DllCall("GetDC", UInt, screenID)
+winDC := DllCall(DLL_GDC, UInt, winID)
+screenDC := DllCall(DLL_GDC, UInt, screenID)
 
 ; ===
 ; Repaint Loop
 ; ===
 
 Repaint:
-	; Get current cursor position
-	MouseGetPos mouseX, mouseY
-	
-	; TODO
-	; Adjust mouse speed based on zoom level
-	;DllCall(%DLL_SPI%, Int, %DLL_SPI_MOUSESPEED%, Int, 0, UInt, %MouseSensitivity%, Int, 2)
+; Get current cursor position
+MouseGetPos mouseX, mouseY
 
-	if (!winFrozen) {		
-		; Posision window beside the cursor
-		WinMove, %winName%, , (mouseX + winMouseOffsetX), (mouseY + winMouseOffsetY)
-	}
-		
-	; Window updating enabled
-	if (winEnabled) {
-		DllCall("gdi32.dll\SetStretchBltMode", "uint", winDC, "int", 0)
-		DllCall("gdi32.dll\StretchBlt", UInt, winDC, Int, 0, Int, 0, Int, (winWidth), Int, (winHeight), UInt, screenDC, UInt, (mouseX - ((winWidth / 2) / zoom)), UInt, (mouseY - ((winHeight / 2) / zoom)), Int, ((winWidth) / zoom), Int, (winHeight / zoom), UInt, 0xCC0020)
-		
-		; TODO [161217] - Make background transparent
-		; TODO [161217] - Make x,y,h, and w adjustable
-		; TODO [161217] - Take routine from get cursor ahk and update image based on current cursor image
-		Gui, Add, Picture, x64 y64 h32 w32 AltSubmit BackgroundTrans, E:\home\travis\Documents\development\n0v1c3\windows\ahk\testCursor.bmp
-	}
-	
-	; Sleep and repaint
-	SetTimer Repaint, %winRepaintDelay%
-Return
+if (!winFrozen) {		
+    ; Posision window beside the cursor
+    WinMove, %winName%, , (mouseX + winMouseOffsetX), (mouseY + winMouseOffsetY)
+}
+
+; Window updating enabled
+if (winEnabled) {
+    DllCall(DLL_SSBM, UInt, winDC, Int, 4*antialize)
+    DllCall(DLL_SB, UInt, winDC, Int, 0, Int, 0, Int, (winWidth), Int, (winHeight), UInt, screenDC, UInt, (mouseX - ((winWidth / 2) / zoom)), UInt, (mouseY - ((winHeight / 2) / zoom)), Int, ((winWidth) / zoom), Int, (winHeight / zoom), UInt, 0xCC0020)
+
+    ; TODO [161217] - Make background transparent
+    ; TODO [161217] - Make x,y,h, and w adjustable
+    ; TODO [161217] - Take routine from get cursor ahk and update image based on current cursor image
+    Gui, Add, Picture, % "x" winWidth/2 " y" winHeight/2 " h32 w32 AltSubmit BackgroundTrans", E:\home\travis\Documents\development\n0v1c3\windows\ahk\testCursor.bmp
+}
+
+; Adjust the system mouse sensitivity based on the current zoom and override configurations
+DllCall(DLL_SPI, UInt, DLL_SPI_SETMOUSESPEED, UInt, 0, UInt, (mouseOverrideEnabled ? mouseOverrideEnabled : (mouseSensitivityOriginal - Ceil(zoom * mouseSensitivityMultiplier) + MOUSE_MIN)), UInt, 0)
+
+; Set delay to repaint the window
+SetTimer Repaint, %winRepaintDelay%
+Return ; Repaint
 
 ; Display tooltip with the current zoom level
 ZoomTooltip:
-	Tooltip, % "Zoom = " (zoom*100) "%"
-	SetTimer, ZoomHideToolTip, 1000
-Return
+; Display a tool tip with the current zoom level (%) and mouse sensitivity
+Tooltip % "Zoom = " (zoom*100)
 
-; Hide any tooltips
-ZoomHideTooltip:
-	Tooltip
-Return
+; Display tool tip for 1 second
+SetTimer ToolTipHide, 1000
+Return ; ZoomToolTip
+
+; Remove tool tip from the screen
+TooltipHide:
+Tooltip
+Return ; ToolTipHide
 
 ; ===
 ; Hotkeys
@@ -171,80 +189,81 @@ Return
 
 ; Shift+Win+a
 ; Toggle window antialize
+; TODO [161217] - Ensure that antialiasing can be toggled
 #+a::
-	antialize := !antialize
-	
-	; TODO [161217] - Ensure that antialiasing can be toggled
-	DllCall( "gdi32.dll\SetStretchBltMode", "uint", winDC, "int", 4*%antialize% )  ; Antializing ?
+antialize := !antialize
 Return 
 
 ; Shift+Win+f
 ; Toggle window freeze (stop all movement and updates)
 #+f::
-	winFrozen := !winFrozen
+winFrozen := !winFrozen
 Return
 
 ; Shift+Win+p
 ; Toggle window update (play/pause)
 #+p::
-	winEnabled := !winEnabled
+winEnabled := !winEnabled
 Return
 
 ; Shift+Win+r
 ; Reload ahk script
 #+r::
-	Reload
+Reload
 Return
 
 ; Shift+Win+q
 ; Exit ahk script
 #+q::
-	; DC clean up
-	;DllCall("gdi32.dll\DeleteDC", UInt, %winDC%)
-	;DllCall("gdi32.dll\DeleteDC", UInt, %screenDC%)
-	ExitApp
+; DC clean upA
+; TODO [161218] - These IDs become invalid
+;DllCall("gdi32.dll\DeleteDC", UInt, %winDC%)
+;DllCall("gdi32.dll\DeleteDC", UInt, %screenDC%)
+
+; Restore the original mouse speed
+DllCall("SystemParametersInfo", UInt, 0x71, UInt, 0, UInt, mouseSensitivityOriginal, UInt, 0)
+ExitApp
 Return
 
 ; Shift+Win+Up
 ; Move window offset from cursor up
 #+Up::
-	winMouseOffsetY := winMouseOffsetY - GUI_WIN_MOUSE_OFFSET_ADJUST
+winMouseOffsetY := winMouseOffsetY - GUI_WIN_MOUSE_OFFSET_ADJUST
 Return
 
 ; Shift+Win+Down
 ; Move window offset from cursor up
 #+Down::
-	winMouseOffsetY := winMouseOffsetY + GUI_WIN_MOUSE_OFFSET_ADJUST
+winMouseOffsetY := winMouseOffsetY + GUI_WIN_MOUSE_OFFSET_ADJUST
 Return
 
 ; Shift+Win+Left
 ; Move window offset from cursor up
 #+Left::
-	winMouseOffsetX := winMouseOffsetX - GUI_WIN_MOUSE_OFFSET_ADJUST
+winMouseOffsetX := winMouseOffsetX - GUI_WIN_MOUSE_OFFSET_ADJUST
 Return
 
 ; Shift+Win+Right
 ; Move window offset from cursor up
 #+Right::
-	winMouseOffsetX := winMouseOffsetX + GUI_WIN_MOUSE_OFFSET_ADJUST
+winMouseOffsetX := winMouseOffsetX + GUI_WIN_MOUSE_OFFSET_ADJUST
 Return
 
 ; Shift+Win+WheelUp
 ; Zoom in
 #+WheelUp::
-	if (zoom < 20) {
-		zoom := zoom + 1
-	}
-	
-	Goto ZoomTooltip
+zoom := zoom + (zoom < ZOOM_LEVEL_MAX ? 1 : 0)
+Goto ZoomTooltip
 Return
 
 ; Shift+Win+WheelDown
 ; Zoom out
 #+WheelDown::
-	if (zoom > 1) {
-		zoom := zoom - 1
-	}
-	
-	Goto ZoomTooltip
+zoom := zoom - (zoom > ZOOM_LEVEL_MIN ? 1 : 0)
+Goto ZoomTooltip
+Return
+
+; Toggle mouse sensitvity override
+F1::
+mouseOverrideEnabled := !mouseOverrideEnabled
 Return
