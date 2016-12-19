@@ -117,6 +117,8 @@ zoom :=  ZOOM_LEVEL_INIT
 Gui +E0x20 -Caption +AlwaysOnTop -Resize +ToolWindow +Border
 Gui Color, %GUI_WIN_BACKGROUND%, %GUI_WIN_COMP_BACKGROUND%
 
+;Gui, Add, Picture, % "x" winWidth/2 " y" winHeight/2 " BackgroundTrans", E:\home\travis\Documents\development\n0v1c3\windows\ahk\testCursor.bmp
+
 ; Display window, initialize off screen to prevent "flicker"
 Gui Show, % "w" winWidth " h" winHeight " x-"winMouseOffsetX " y-"winMouseOffsetY, %winName%
 
@@ -126,8 +128,8 @@ WinGet screenID, id
 
 ; Configure window, components, and screen for transparancy
 ;WinSet Transparent, 0, %winName%;%WindowTrans%, %winID% ; Confirm what this line was doing
-;WinSet TransColor, %GUI_WIN_COMP_BACKGROUND%, %winID%
-;WinSet TransColor, %GUI_WIN_COMP_BACKGROUND%, %screenID%
+WinSet TransColor, %GUI_WIN_COMP_BACKGROUND%, %winID%
+WinSet TransColor, %GUI_WIN_COMP_BACKGROUND%, %screenID%
 
 ; Adjust shape of the window
 ;WinSet, Region, 10-30 W128 H128 E, %winName%
@@ -135,6 +137,7 @@ WinGet screenID, id
 ; Get handles to the device context (DC) for the window and screen
 winDC := DllCall(DLL_GDC, UInt, winID)
 screenDC := DllCall(DLL_GDC, UInt, screenID)
+Gui, Add, Picture, % "x" winWidth/2 " y" winHeight/2 " h-1 w32", E:\home\travis\Documents\development\n0v1c3\windows\ahk\magnifier\testCursor.png
 
 ; ===
 ; Repaint Loop
@@ -152,13 +155,13 @@ if (!winFrozen) {
 ; Window updating enabled
 if (winEnabled) {
     ;DllCall(DLL_SSBM, UInt, winDC, Int, 4*antialize)
-    DllCall(DLL_SB, UInt, winDC, Int, 0, Int, 0, Int, (winWidth), Int, (winHeight), UInt, screenDC, UInt, (mouseX - ((winWidth / 2) / zoom)), UInt, (mouseY - ((winHeight / 2) / zoom)), Int, ((winWidth) / zoom), Int, (winHeight / zoom), UInt, 0xCC0020)
+    ;DllCall(DLL_SB, UInt, winDC, Int, 0, Int, 0, Int, (winWidth), Int, (winHeight), UInt, screenDC, UInt, (mouseX - ((winWidth / 2) / zoom)), UInt, (mouseY - ((winHeight / 2) / zoom)), Int, ((winWidth) / zoom), Int, (winHeight / zoom), UInt, 0xCC0020)
 
     ; TODO [161217] - Make background transparent
     ; TODO [161217] - Make x,y,h, and w adjustable
     ; TODO [161217] - Take routine from get cursor ahk and update image based on current cursor image
-    ;Gui, Add, Picture, % "x" winWidth/2 " y" winHeight/2 " h32 w32 AltSubmit BackgroundTrans 0x4000000", E:\home\travis\Documents\development\n0v1c3\windows\ahk\testCursor.png
-    Gui, Add, Picture, % "x" winWidth/2 " y" winHeight/2 " 0x4000000", E:\home\travis\Documents\development\n0v1c3\windows\ahk\testCursor.bmp
+    ;Gui, Add, Picture, % "x" winWidth/2 " y" winHeight/2 " h32 w32 AltSubmit BackgroundTrans", E:\home\travis\Documents\development\n0v1c3\windows\ahk\magnifier\testCursor.png
+	;Gui, Add, Picture, % "x" winWidth/2 " y" winHeight/2 " h-1 w32", E:\home\travis\Documents\development\n0v1c3\windows\ahk\magnifier\testCursor.png
 
 }
 
