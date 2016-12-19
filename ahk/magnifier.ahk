@@ -27,8 +27,6 @@ ANTIALIZE_INIT := 1
 ; ---
 
 ; SystemParametersInfo
-DLL_SPI_MOUSESPEED = 113
-
 DLL_GDC := "GetDC"
 
 DLL_SSBM := "gdi32.dll\SetStretchBltMode"
@@ -50,12 +48,12 @@ MOUSE_OVERRIDE_ENABLED_INIT := 0
 ; Window
 ; ---
 
-GUI_WIN_BACKGROUND := ffffff
-GUI_WIN_COMP_BACKGROUND := f3ffff
+GUI_WIN_BACKGROUND := f3ffff
+GUI_WIN_COMP_BACKGROUND := ffffff
 GUI_WIN_INIT_OFFSET := 10000
 GUI_WIN_WIDTH_INIT := 150
 GUI_WIN_HEIGHT_INIT := 150
-GUI_WIN_REPAINT_DELAY_INIT := 100
+GUI_WIN_REPAINT_DELAY_INIT := 10
 GUI_WIN_MOUSE_OFFSET_INIT := 25
 GUI_WIN_MOUSE_OFFSET_ADJUST := 8
 GUI_WIN_ENABLED_INIT := 1
@@ -153,13 +151,15 @@ if (!winFrozen) {
 
 ; Window updating enabled
 if (winEnabled) {
-    DllCall(DLL_SSBM, UInt, winDC, Int, 4*antialize)
+    ;DllCall(DLL_SSBM, UInt, winDC, Int, 4*antialize)
     DllCall(DLL_SB, UInt, winDC, Int, 0, Int, 0, Int, (winWidth), Int, (winHeight), UInt, screenDC, UInt, (mouseX - ((winWidth / 2) / zoom)), UInt, (mouseY - ((winHeight / 2) / zoom)), Int, ((winWidth) / zoom), Int, (winHeight / zoom), UInt, 0xCC0020)
 
     ; TODO [161217] - Make background transparent
     ; TODO [161217] - Make x,y,h, and w adjustable
     ; TODO [161217] - Take routine from get cursor ahk and update image based on current cursor image
-    Gui, Add, Picture, % "x" winWidth/2 " y" winHeight/2 " h32 w32 AltSubmit BackgroundTrans", E:\home\travis\Documents\development\n0v1c3\windows\ahk\testCursor.bmp
+    ;Gui, Add, Picture, % "x" winWidth/2 " y" winHeight/2 " h32 w32 AltSubmit BackgroundTrans 0x4000000", E:\home\travis\Documents\development\n0v1c3\windows\ahk\testCursor.png
+    Gui, Add, Picture, % "x" winWidth/2 " y" winHeight/2 " 0x4000000", E:\home\travis\Documents\development\n0v1c3\windows\ahk\testCursor.bmp
+
 }
 
 ; Adjust the system mouse sensitivity based on the current zoom and override configurations
@@ -172,7 +172,7 @@ Return ; Repaint
 ; Display tooltip with the current zoom level
 ZoomTooltip:
 ; Display a tool tip with the current zoom level (%) and mouse sensitivity
-Tooltip % "Zoom = " (zoom*100)
+Tooltip % "Zoom = " (zoom*100) "%"
 
 ; Display tool tip for 1 second
 SetTimer ToolTipHide, 1000
