@@ -53,7 +53,7 @@ GUI_WIN_COMP_BACKGROUND := ffffff
 GUI_WIN_INIT_OFFSET := 10000
 GUI_WIN_WIDTH_INIT := 150
 GUI_WIN_HEIGHT_INIT := 150
-GUI_WIN_REPAINT_DELAY_INIT := 10
+GUI_WIN_REPAINT_DELAY_INIT := 2
 GUI_WIN_MOUSE_OFFSET_INIT := 25
 GUI_WIN_MOUSE_OFFSET_ADJUST := 8
 GUI_WIN_ENABLED_INIT := 1
@@ -91,7 +91,7 @@ mouseOverrideEnabled := MOUSE_OVERRIDE_ENABLED_INIT
 mouseSensitivityMultiplier := mouseSensitivityOriginal / ZOOM_LEVEL_MAX 
 
 ; ---
-; Windown
+; Window
 ; ---
 
 winWidth := GUI_WIN_WIDTH_INIT
@@ -112,12 +112,10 @@ zoom :=  ZOOM_LEVEL_INIT
 ; ===
 ; GUI
 ; ===
-
+/*
 ; Create a window to display magnification
 Gui +E0x20 -Caption +AlwaysOnTop -Resize +ToolWindow +Border
 Gui Color, %GUI_WIN_BACKGROUND%, %GUI_WIN_COMP_BACKGROUND%
-
-;Gui, Add, Picture, % "x" winWidth/2 " y" winHeight/2 " BackgroundTrans", E:\home\travis\Documents\development\n0v1c3\windows\ahk\testCursor.bmp
 
 ; Display window, initialize off screen to prevent "flicker"
 Gui Show, % "w" winWidth " h" winHeight " x-"winMouseOffsetX " y-"winMouseOffsetY, %winName%
@@ -127,9 +125,9 @@ WinGet winID, id,  %winName%
 WinGet screenID, id
 
 ; Configure window, components, and screen for transparancy
-;WinSet Transparent, 0, %winName%;%WindowTrans%, %winID% ; Confirm what this line was doing
-WinSet TransColor, %GUI_WIN_COMP_BACKGROUND%, %winID%
-WinSet TransColor, %GUI_WIN_COMP_BACKGROUND%, %screenID%
+WinSet Transparent, 0, %winName%;%WindowTrans%, %winID% ; Confirm what this line was doing
+;WinSet TransColor, %GUI_WIN_COMP_BACKGROUND%, %winID%
+;WinSet TransColor, %GUI_WIN_COMP_BACKGROUND%, %screenID%
 
 ; Adjust shape of the window
 ;WinSet, Region, 10-30 W128 H128 E, %winName%
@@ -137,8 +135,7 @@ WinSet TransColor, %GUI_WIN_COMP_BACKGROUND%, %screenID%
 ; Get handles to the device context (DC) for the window and screen
 winDC := DllCall(DLL_GDC, UInt, winID)
 screenDC := DllCall(DLL_GDC, UInt, screenID)
-Gui, Add, Picture, % "x" winWidth/2 " y" winHeight/2 " h-1 w32", E:\home\travis\Documents\development\n0v1c3\windows\ahk\magnifier\testCursor.png
-
+*/
 ; ===
 ; Repaint Loop
 ; ===
@@ -147,6 +144,7 @@ Repaint:
 ; Get current cursor position
 MouseGetPos mouseX, mouseY
 
+/*
 if (!winFrozen) {		
     ; Posision window beside the cursor
     WinMove, %winName%, , (mouseX + winMouseOffsetX), (mouseY + winMouseOffsetY)
@@ -155,18 +153,17 @@ if (!winFrozen) {
 ; Window updating enabled
 if (winEnabled) {
     ;DllCall(DLL_SSBM, UInt, winDC, Int, 4*antialize)
-    ;DllCall(DLL_SB, UInt, winDC, Int, 0, Int, 0, Int, (winWidth), Int, (winHeight), UInt, screenDC, UInt, (mouseX - ((winWidth / 2) / zoom)), UInt, (mouseY - ((winHeight / 2) / zoom)), Int, ((winWidth) / zoom), Int, (winHeight / zoom), UInt, 0xCC0020)
+    DllCall(DLL_SB, UInt, winDC, Int, 0, Int, 0, Int, (winWidth), Int, (winHeight), UInt, screenDC, UInt, (mouseX - ((winWidth / 2) / zoom)), UInt, (mouseY - ((winHeight / 2) / zoom)), Int, ((winWidth) / zoom), Int, (winHeight / zoom), UInt, 0xCC0020)
 
     ; TODO [161217] - Make background transparent
     ; TODO [161217] - Make x,y,h, and w adjustable
     ; TODO [161217] - Take routine from get cursor ahk and update image based on current cursor image
-    ;Gui, Add, Picture, % "x" winWidth/2 " y" winHeight/2 " h32 w32 AltSubmit BackgroundTrans", E:\home\travis\Documents\development\n0v1c3\windows\ahk\magnifier\testCursor.png
-	;Gui, Add, Picture, % "x" winWidth/2 " y" winHeight/2 " h-1 w32", E:\home\travis\Documents\development\n0v1c3\windows\ahk\magnifier\testCursor.png
+    Gui, Add, Picture, % "x" winWidth/2 " y" winHeight/2 " h0 w0 AltSubmit BackgroundTrans", E:\home\travis\Documents\development\n0v1c3\windows\ahk\magnifier\testCursor.png
 
 }
-
+*/
 ; Adjust the system mouse sensitivity based on the current zoom and override configurations
-DllCall(DLL_SPI, UInt, DLL_SPI_SETMOUSESPEED, UInt, 0, UInt, (mouseOverrideEnabled ? mouseOverrideEnabled : (mouseSensitivityOriginal - Ceil(zoom * mouseSensitivityMultiplier) + MOUSE_MIN)), UInt, 0)
+DllCall(DLL_SPI, UInt, DLL_SPI_SETMOUSESPEED, UInt, 0, UInt, (mouseOverrideEnabled ? MOUSE_MIN : mouseSensitivityOriginal), UInt, 0) ; (mouseSensitivityOriginal - Ceil(zoom * mouseSensitivityMultiplier) + MOUSE_MIN)), UInt, 0)
 
 ; Set delay to repaint the window
 SetTimer Repaint, %winRepaintDelay%
@@ -174,7 +171,7 @@ Return ; Repaint
 
 ; Display tooltip with the current zoom level
 ZoomTooltip:
-; Display a tool tip with the current zoom level (%) and mouse sensitivity
+; Display a tool tip with the current zoom level (%) and mouse sensitivityR
 Tooltip % "Zoom = " (zoom*100) "%"
 
 ; Display tool tip for 1 second
@@ -193,30 +190,35 @@ Return ; ToolTipHide
 ; Shift+Win+a
 ; Toggle window antialize
 ; TODO [161217] - Ensure that antialiasing can be toggled
+#UseHook
 #+a::
 antialize := !antialize
 Return 
 
 ; Shift+Win+f
 ; Toggle window freeze (stop all movement and updates)
+#UseHook
 #+f::
 winFrozen := !winFrozen
 Return
 
 ; Shift+Win+p
 ; Toggle window update (play/pause)
+#UseHook
 #+p::
 winEnabled := !winEnabled
 Return
 
 ; Shift+Win+r
 ; Reload ahk script
+#UseHook
 #+r::
 Reload
 Return
 
 ; Shift+Win+q
 ; Exit ahk script
+#UseHook
 #+q::
 ; DC clean upA
 ; TODO [161218] - These IDs become invalid
@@ -230,30 +232,35 @@ Return
 
 ; Shift+Win+Up
 ; Move window offset from cursor up
+#UseHook
 #+Up::
 winMouseOffsetY := winMouseOffsetY - GUI_WIN_MOUSE_OFFSET_ADJUST
 Return
 
 ; Shift+Win+Down
 ; Move window offset from cursor up
+#UseHook
 #+Down::
 winMouseOffsetY := winMouseOffsetY + GUI_WIN_MOUSE_OFFSET_ADJUST
 Return
 
 ; Shift+Win+Left
 ; Move window offset from cursor up
+#UseHook
 #+Left::
 winMouseOffsetX := winMouseOffsetX - GUI_WIN_MOUSE_OFFSET_ADJUST
 Return
 
 ; Shift+Win+Right
 ; Move window offset from cursor up
+#UseHook
 #+Right::
 winMouseOffsetX := winMouseOffsetX + GUI_WIN_MOUSE_OFFSET_ADJUST
 Return
 
 ; Shift+Win+WheelUp
 ; Zoom in
+#UseHook
 #+WheelUp::
 zoom := zoom + (zoom < ZOOM_LEVEL_MAX ? 1 : 0)
 Goto ZoomTooltip
@@ -261,12 +268,14 @@ Return
 
 ; Shift+Win+WheelDown
 ; Zoom out
+#UseHook
 #+WheelDown::
 zoom := zoom - (zoom > ZOOM_LEVEL_MIN ? 1 : 0)
 Goto ZoomTooltip
 Return
 
 ; Toggle mouse sensitvity override
+#UseHook
 F1::
 mouseOverrideEnabled := !mouseOverrideEnabled
 Return
