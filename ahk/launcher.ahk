@@ -1,4 +1,5 @@
 ﻿#NoEnv  ; Recommended for performance and compatibility with future AutoHotkey releases.
+#SingleInstance Force ; Replace old script with new script without confirmation
 SendMode Input  ; Recommended for new scripts due to its superior speed and reliability.
 SetWorkingDir %A_ScriptDir%  ; Ensures a consistent starting directory.
 
@@ -22,7 +23,16 @@ Reload
 Return ; Shift+Win+r
 
 #+q::
-ExitApp
+DetectHiddenWindows, On 
+WinGet, List, List, ahk_class AutoHotkey 
+
+Loop %List% 
+  { 
+    WinGet, PID, PID, % "ahk_id " List%A_Index% 
+    If ( PID <> DllCall("GetCurrentProcessId") ) 
+         PostMessage,0x111,65405,0,, % "ahk_id " List%A_Index% 
+  }
+  
 Return ; Shift+Win+q
 
 Ok:
