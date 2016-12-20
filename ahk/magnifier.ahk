@@ -8,6 +8,7 @@
 
 ; Recommended for performance and compatibility with future AutoHotkey releases
 #NoEnv
+#SingleInstance Force ; Replace old script with new script without confirmation
 
 ; Set coordinate mode to affect (MouseGetPos, Click, and MouseMove/Click/Drag) all relative to the entire screen
 CoordMode Mouse, Screen
@@ -43,6 +44,8 @@ DLL_SPI_SETMOUSESPEED = 0x71
 
 MOUSE_MIN := 3
 MOUSE_OVERRIDE_ENABLED_INIT := 0
+MOUSE_CURSOR_LENGTH_INIT := 30
+MOUSE_CURSOR_WIDTH_INIT := 2
 
 ; ---
 ; Window
@@ -53,7 +56,7 @@ GUI_WIN_COMP_BACKGROUND := ffffff
 GUI_WIN_INIT_OFFSET := 10000
 GUI_WIN_WIDTH_INIT := 150
 GUI_WIN_HEIGHT_INIT := 150
-GUI_WIN_REPAINT_DELAY_INIT := 10
+GUI_WIN_REPAINT_DELAY_INIT := 100
 GUI_WIN_MOUSE_OFFSET_INIT := 25
 GUI_WIN_MOUSE_OFFSET_ADJUST := 8
 GUI_WIN_ENABLED_INIT := 1
@@ -86,6 +89,10 @@ antialize := ANTIALIZE_INIT
 ; Retrieve the current speed so that it can be restored later:
 DllCall(DLL_SPI, UInt, DLL_SPI_GETMOUSESPEED, UInt, 0, UIntP, mouseSensitivityOriginal, UInt, 0)
 mouseOverrideEnabled := MOUSE_OVERRIDE_ENABLED_INIT
+mouseCursorVerticalWidth := MOUSE_CURSOR_WIDTH_INIT
+mouseCursorVerticalLength := MOUSE_CURSOR_LENGTH_INIT
+mouseCursorHorizontalWidth := MOUSE_CURSOR_WIDTH_INIT
+mouseCursorHorizontalLength := MOUSE_CURSOR_HEIGHT_INIT
 
 ; Range {1..20}
 mouseSensitivityMultiplier := mouseSensitivityOriginal / ZOOM_LEVEL_MAX 
@@ -128,8 +135,8 @@ WinGet screenID, id
 
 ; Configure window, components, and screen for transparancy
 ;WinSet Transparent, 0, %winName%;%WindowTrans%, %winID% ; Confirm what this line was doing
-WinSet TransColor, %GUI_WIN_COMP_BACKGROUND%, %winID%
-WinSet TransColor, %GUI_WIN_COMP_BACKGROUND%, %screenID%
+;WinSet TransColor, %GUI_WIN_COMP_BACKGROUND%, %winID%
+;WinSet TransColor, %GUI_WIN_COMP_BACKGROUND%, %screenID%
 
 ; Adjust shape of the window
 ;WinSet, Region, 10-30 W128 H128 E, %winName%
@@ -137,7 +144,6 @@ WinSet TransColor, %GUI_WIN_COMP_BACKGROUND%, %screenID%
 ; Get handles to the device context (DC) for the window and screen
 winDC := DllCall(DLL_GDC, UInt, winID)
 screenDC := DllCall(DLL_GDC, UInt, screenID)
-Gui, Add, Picture, % "x" winWidth/2 " y" winHeight/2 " h-1 w32", E:\home\travis\Documents\development\n0v1c3\windows\ahk\magnifier\testCursor.png
 
 ; ===
 ; Repaint Loop
@@ -155,14 +161,15 @@ if (!winFrozen) {
 ; Window updating enabled
 if (winEnabled) {
     ;DllCall(DLL_SSBM, UInt, winDC, Int, 4*antialize)
-    ;DllCall(DLL_SB, UInt, winDC, Int, 0, Int, 0, Int, (winWidth), Int, (winHeight), UInt, screenDC, UInt, (mouseX - ((winWidth / 2) / zoom)), UInt, (mouseY - ((winHeight / 2) / zoom)), Int, ((winWidth) / zoom), Int, (winHeight / zoom), UInt, 0xCC0020)
-
+    DllCall(DLL_SB, UInt, winDC, Int, 0, Int, 0, Int, (winWidth), Int, (winHeight), UInt, screenDC, UInt, (mouseX - ((winWidth / 2) / zoom)), UInt, (mouseY - ((winHeight / 2) / zoom)), Int, ((winWidth) / zoom), Int, (winHeight / zoom), UInt, 0xCC0020)
+	gui, add, text, % "x" (winWidth/2 - mouseCursorVerticalWidth) " y" (winHeight/2 - mouseCursorVerticalLength/2) " w" (mouseCursorVerticalWidth) " h" (mouseCursorVerticalLength) " 0x7"  ;Vertical Line > Black
+	gui, add, text, % "x" winWidth/2 - mouseCursorVerticalLength/2 " y" winHeight/2 - mouseCursorVerticalWidth " w" mouseCursorVerticalLength " h" mouseCursorVerticalWidth " 0x7"  ;Vertical Line > Black
+	
     ; TODO [161217] - Make background transparent
     ; TODO [161217] - Make x,y,h, and w adjustable
     ; TODO [161217] - Take routine from get cursor ahk and update image based on current cursor image
-    ;Gui, Add, Picture, % "x" winWidth/2 " y" winHeight/2 " h32 w32 AltSubmit BackgroundTrans", E:\home\travis\Documents\development\n0v1c3\windows\ahk\magnifier\testCursor.png
+    ;Gui, Add, Picture, % "x" winWidth/2 " y" winHeight/2 " h32 w32" AltSubmit BackgroundTrans", E:\home\travis\Documents\development\n0v1c3\windows\ahk\magnifier\testCursor.png
 	;Gui, Add, Picture, % "x" winWidth/2 " y" winHeight/2 " h-1 w32", E:\home\travis\Documents\development\n0v1c3\windows\ahk\magnifier\testCursor.png
-
 }
 
 ; Adjust the system mouse sensitivity based on the current zoom and override configurations
