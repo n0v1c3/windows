@@ -8,7 +8,7 @@ Gui, Add, Text, , Select the script to run;
 ; This function call builds the dropdown menu items
 scriptList := Update()
 Gui, Add, DropdownList, vscript, %scriptList%
-Gui, Add, Button, gOk wp, Run Script
+;Gui, Add, Button, gOk wp, Run Script
 
 ~Esc::
 Gui, Hide
@@ -63,3 +63,10 @@ Update()
 	}
 	Return scriptList
 }
+
+
+#IfWinActive AHK - Launcher
+Enter::
+	GoSub, Ok
+Return ; Enter
+#IfWinActive 

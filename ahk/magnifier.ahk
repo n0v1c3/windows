@@ -13,6 +13,8 @@
 ; Set coordinate mode to affect (MouseGetPos, Click, and MouseMove/Click/Drag) all relative to the entire screen
 CoordMode Mouse, Screen
 
+OnExit, ExitSub
+
 ; ===
 ; Constants
 ; ===
@@ -56,7 +58,7 @@ GUI_WIN_COMP_BACKGROUND := ffffff
 GUI_WIN_INIT_OFFSET := 10000
 GUI_WIN_WIDTH_INIT := 150
 GUI_WIN_HEIGHT_INIT := 150
-GUI_WIN_REPAINT_DELAY_INIT := 100
+GUI_WIN_REPAINT_DELAY_INIT := 10
 GUI_WIN_MOUSE_OFFSET_INIT := 25
 GUI_WIN_MOUSE_OFFSET_ADJUST := 8
 GUI_WIN_ENABLED_INIT := 1
@@ -164,12 +166,6 @@ if (winEnabled) {
     DllCall(DLL_SB, UInt, winDC, Int, 0, Int, 0, Int, (winWidth), Int, (winHeight), UInt, screenDC, UInt, (mouseX - ((winWidth / 2) / zoom)), UInt, (mouseY - ((winHeight / 2) / zoom)), Int, ((winWidth) / zoom), Int, (winHeight / zoom), UInt, 0xCC0020)
 	gui, add, text, % "x" (winWidth/2 - mouseCursorVerticalWidth) " y" (winHeight/2 - mouseCursorVerticalLength/2) " w" (mouseCursorVerticalWidth) " h" (mouseCursorVerticalLength) " 0x7"  ;Vertical Line > Black
 	gui, add, text, % "x" winWidth/2 - mouseCursorVerticalLength/2 " y" winHeight/2 - mouseCursorVerticalWidth " w" mouseCursorVerticalLength " h" mouseCursorVerticalWidth " 0x7"  ;Vertical Line > Black
-	
-    ; TODO [161217] - Make background transparent
-    ; TODO [161217] - Make x,y,h, and w adjustable
-    ; TODO [161217] - Take routine from get cursor ahk and update image based on current cursor image
-    ;Gui, Add, Picture, % "x" winWidth/2 " y" winHeight/2 " h32 w32" AltSubmit BackgroundTrans", E:\home\travis\Documents\development\n0v1c3\windows\ahk\magnifier\testCursor.png
-	;Gui, Add, Picture, % "x" winWidth/2 " y" winHeight/2 " h-1 w32", E:\home\travis\Documents\development\n0v1c3\windows\ahk\magnifier\testCursor.png
 }
 
 ; Adjust the system mouse sensitivity based on the current zoom and override configurations
@@ -193,6 +189,16 @@ TooltipHide:
 Tooltip
 Return ; ToolTipHide
 
+ExitSub:
+; DC clean upA
+; TODO [161218] - These IDs become invalid
+;DllCall("gdi32.dll\DeleteDC", UInt, %winDC%)
+;DllCall("gdi32.dll\DeleteDC", UInt, %screenDC%)
+
+DllCall("SystemParametersInfo", UInt, 0x71, UInt, 0, UInt, mouseSensitivityOriginal, UInt, 0)
+ExitApp  ; A script with an OnExit subroutine will not terminate unless the subroutine uses ExitApp.
+Return ; ExitSub
+
 ; ===
 ; Hotkeys
 ; ===
@@ -214,25 +220,6 @@ Return
 ; Toggle window update (play/pause)
 #+p::
 winEnabled := !winEnabled
-Return
-
-; Shift+Win+r
-; Reload ahk script
-#+r::
-Reload
-Return
-
-; Shift+Win+q
-; Exit ahk script
-#+q::
-; DC clean upA
-; TODO [161218] - These IDs become invalid
-;DllCall("gdi32.dll\DeleteDC", UInt, %winDC%)
-;DllCall("gdi32.dll\DeleteDC", UInt, %screenDC%)
-
-; Restore the original mouse speed
-DllCall("SystemParametersInfo", UInt, 0x71, UInt, 0, UInt, mouseSensitivityOriginal, UInt, 0)
-ExitApp
 Return
 
 ; Shift+Win+Up
@@ -271,9 +258,4 @@ Return
 #+WheelDown::
 zoom := zoom - (zoom > ZOOM_LEVEL_MIN ? 1 : 0)
 Goto ZoomTooltip
-Return
-
-; Toggle mouse sensitvity override
-F1::
-mouseOverrideEnabled := !mouseOverrideEnabled
 Return

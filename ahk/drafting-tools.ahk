@@ -4,6 +4,7 @@
 SendMode Input  ; Recommended for new scripts due to its superior speed and reliability.
 SetWorkingDir %A_ScriptDir%  ; Ensures a consistent starting directory.
 
+OnExit, ExitSub
 
 DLL_SPI := "SystemParametersInfo"
 DLL_SPI_GETMOUSESPEED = 0x70
@@ -25,10 +26,6 @@ F1::
 	DllCall(DLL_SPI, UInt, DLL_SPI_SETMOUSESPEED, UInt, 0, UInt, (mouseOverrideEnabled ? MOUSE_MIN : mouseSensitivityOriginal), UInt, 0) 
 Return
 
-#+q::
-	ExitApp
-Return
-
 F3::
 	Send {F2}
 	Sleep 1
@@ -41,4 +38,16 @@ F3::
 	Send ^v
 	Sleep 1
 	Send {F2}
+Return
+
+F4::
+	Send {Right}
+	Sleep 1
+	Send ^v
+	Sleep 1
+	Send {F2}
+Return
+
+ExitSub:
+	ExitApp
 Return
