@@ -21,33 +21,47 @@ MOUSE_OVERRIDE_ENABLED_INIT := 0
 DllCall(DLL_SPI, UInt, DLL_SPI_GETMOUSESPEED, UInt, 0, UIntP, mouseSensitivityOriginal, UInt, 0)
 mouseOverrideEnabled := MOUSE_OVERRIDE_ENABLED_INIT
 
+; ===
+; Functions
+; ===
+
+; Adjust the current mouse speed accordig to the value of mouseOverrideEnabled
+SetMouseSpeed:
+DllCall(DLL_SPI, UInt, DLL_SPI_SETMOUSESPEED, UInt, 0, UInt, (mouseOverrideEnabled ? MOUSE_MIN : mouseSensitivityOriginal), UInt, 0) 
+Return ; SetMouseSpeed
+
 F1::
-	mouseOverrideEnabled := !mouseOverrideEnabled
-	DllCall(DLL_SPI, UInt, DLL_SPI_SETMOUSESPEED, UInt, 0, UInt, (mouseOverrideEnabled ? MOUSE_MIN : mouseSensitivityOriginal), UInt, 0) 
-Return
+mouseOverrideEnabled := !mouseOverrideEnabled
+Goto SetMouseSpeed
+Return ; F1
 
 F3::
-	Send {F2}
-	Sleep 1
-	Send {Shift down}{Ctrl down}
-	Sleep 1
-	Send {End}
-	Sleep 1
-	Send {Shift up}{Ctrl up}
-	Sleep 1
-	Send ^v
-	Sleep 1
-	Send {F2}
-Return
+Send {F2}
+Sleep 1
+Send {Shift down}{Ctrl down}
+Sleep 1
+Send {End}
+Sleep 1
+Send {Shift up}{Ctrl up}
+Sleep 1
+Send ^v
+Sleep 1
+Send {F2}
+Return ; F3
 
 F4::
-	Send {Right}
-	Sleep 1
-	Send ^v
-	Sleep 1
-	Send {F2}
-Return
+Send {Right}
+Sleep 1
+Send ^v
+Sleep 1
+Send {F2}
+Return ; F4
 
 ExitSub:
-	ExitApp
-Return
+; Set mouse back to the initial speed
+mouseOverrideEnabled := MOUSE_OVERRIDE_ENABLED_INIT
+Goto SetMouseSpeed
+
+; Exit application
+ExitApp
+Return ; ExitSub
