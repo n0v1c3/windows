@@ -1,11 +1,8 @@
+Attribute VB_Name = "VBATools"
 ' ===
 ' Author(s): Travis Gall and Mike Boiko
-' Description: Backup all vba macros in the current application. The subroutine
-'              "Workbook_BeforeSave" will run automatically when the project containing
-'              the macro is saved.
+' Description: A bundle of tools to help with VBA development.
 ' ===
-
-' TODO [161215] - Create a subroutine or function capable of importing a previous backup into the current project
 
 ' ===
 ' Install
@@ -26,13 +23,17 @@
 ' ===
 ' Constants
 ' ===
-
+Private Const MODULE_NAME = "VBATools" ' Update manually (see first line) when changing for next import
+Private Const DEBUG_ENABLED = False
 Private Const CODE_START_LINE_DEFAULT = 1
 Private Const VBA_FOLDER = "/vba/"
-Private Const VBA_EXTENSION = ".vba"
+Private Const VBA_EXTENSION = ".bas"
 
-' Triggered automatically on user save event and used to create a backup of the current workbook's vba as plain-text
-Private Sub Workbook_BeforeSave(ByVal SaveAsUI As Boolean, Cancel As Boolean)
+' ---
+' Author(s): Travis Gall and Mike Boiko
+' Description: Backup all vba macros in the current application.
+' ---
+Private Sub VBABackup()
     ' ===
     ' Debug
     ' ===
@@ -41,7 +42,7 @@ Private Sub Workbook_BeforeSave(ByVal SaveAsUI As Boolean, Cancel As Boolean)
     Dim DebugEnabled As Boolean
 
     ' Enable/disable debugging here
-    DebugEnabled = False
+    DebugEnabled = False Or DEBUG_ENABLED
 
     ' ===
     ' Main
@@ -55,55 +56,76 @@ Private Sub Workbook_BeforeSave(ByVal SaveAsUI As Boolean, Cancel As Boolean)
     Dim FolderPath As String
     Dim ModuleFile As VBComponent
     Dim ModuleName As String
-    
-    ' TODO [161215] - Clean up old vba backups prior to saving the current modules
-    
+
     ' Get current workbook path
     FolderPath = Application.ActiveWorkbook.Path & VBA_FOLDER
-    
+
     ' Skip current module if empty
-    If Dir(FolderPath, vbDirectory) = "" Then MkDir FolderPath
-    
+    If Dir(FolderPath, vbDirectory) = "" Then
+        MkDir FolderPath
+    End If
+
     ' ---
     ' Modules
     ' ---
-    
+
     ' Loop through each module in the current workbook
     For Each ModuleFile In ActiveWorkbook.VBProject.VBComponents
         ' ---
         ' Read
         ' ---
-        
+
         ' Get the code object from the current module in the loop
         Set Code = ModuleFile.CodeModule
-        
+
         ' Number of lines in the code
         CodeLineCount = Code.CountOfLines()
-        
+
         ' No need to write blank modules
-        If CodeLineCount < CODE_START_LINE_DEFAULT Then GoTo NextModule
-        
+        If CodeLineCount < CODE_START_LINE_DEFAULT Then
+            GoTo NextModule
+        End If
+
         ' Filepath of current module
         FilePath = FolderPath & Code.Name & VBA_EXTENSION
-        
+
         ' ---
         ' Write
         ' ---
-        
+
         ' Open file by file path
         Open FilePath For Output As #1
-            ' Print current module code to the open vba file
-            Print #1, Code.Lines(CODE_START_LINE_DEFAULT, CodeLineCount)
+        Print #1, "Attribute VB_Name = """ & MODULE_NAME & """"
+        ' Print current module code to the open vba file
+        Print #1, Code.Lines(CODE_START_LINE_DEFAULT, CodeLineCount)
         Close #1 ' Close file
-    
+
         ' * Debug Output
         If DebugEnabled Then
             ' Display the output of the current module
             Debug.Print Code.Lines(CODE_START_LINE_DEFAULT, CodeLineCount)
         End If
-            
-' Skip to this label when CodeLineCount < CODE_START_LINE_DEFAULT
+
+        ' Skip to this label when CodeLineCount < CODE_START_LINE_DEFAULT
 NextModule:
-        
+
     Next ModuleFile
-End Sub ' Workbook_BeforeSave
+End Sub ' VBABackup
+
+' ---
+' Author(s): Travis Gall
+' Description: Backup all vba macros in the current application.
+' ---
+Private Sub VBARestore()
+    wb.VBProject.VBComponents.Import ("C:\Program Files (x86)\Microsoft Office\Office14\Library\SingleProperty.bas")
+
+    Dim MyObj As Object, MySource As Object, file As Variant
+    file = Dir("c:\testfolder\")
+    While (file <> "")
+        If InStr(file, "test") > 0 Then
+            MsgBox "found " & file
+            Exit Sub
+        End If
+        file = Dir
+    Wend
+End Sub ' VBARestore()
