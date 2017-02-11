@@ -7,7 +7,6 @@ Attribute VB_Name = "VBATools"
 ' ===
 ' Install
 ' ===
-
 ' - Copy this code into "ThisWorkbook" on any projects you wish to enable the plain text backup
 ' - Enable "Microsoft Visual Basic for Applications Extensibility 5.x"
 '   -> Tools>References
@@ -23,39 +22,24 @@ Attribute VB_Name = "VBATools"
 ' ===
 ' Constants
 ' ===
-Private Const MODULE_NAME = "VBATools" ' Update manually (see first line) when changing for next import
 Private Const DEBUG_ENABLED = False
-Private Const CODE_START_LINE_DEFAULT = 1
-Private Const VBA_FOLDER = "/vba/"
+Private Const VBA_FOLDER = "\vba\"
 Private Const VBA_EXTENSION = ".bas"
 
-' ---
+' ===
 ' Author(s): Travis Gall and Mike Boiko
 ' Description: Backup all vba macros in the current application.
-' ---
-Private Sub VBABackup()
-    ' ===
-    ' Debug
-    ' ===
-
-    ' Define types
-    Dim DebugEnabled As Boolean
-
-    ' Enable/disable debugging here
-    DebugEnabled = False Or DEBUG_ENABLED
-
+' ===
+Public Sub VBABackup()
     ' ===
     ' Main
     ' ===
-
     ' Define variable types
     Dim Code As CodeModule
-    Dim CodeLine As Long
     Dim CodeLineCount As Long
     Dim FilePath As String
     Dim FolderPath As String
     Dim ModuleFile As VBComponent
-    Dim ModuleName As String
 
     ' Get current workbook path
     FolderPath = Application.ActiveWorkbook.Path & VBA_FOLDER
@@ -68,21 +52,19 @@ Private Sub VBABackup()
     ' ---
     ' Modules
     ' ---
-
     ' Loop through each module in the current workbook
     For Each ModuleFile In ActiveWorkbook.VBProject.VBComponents
         ' ---
         ' Read
         ' ---
-
         ' Get the code object from the current module in the loop
         Set Code = ModuleFile.CodeModule
-
+        
         ' Number of lines in the code
         CodeLineCount = Code.CountOfLines()
 
         ' No need to write blank modules
-        If CodeLineCount < CODE_START_LINE_DEFAULT Then
+        If CodeLineCount < 1 Then
             GoTo NextModule
         End If
 
@@ -92,40 +74,65 @@ Private Sub VBABackup()
         ' ---
         ' Write
         ' ---
-
         ' Open file by file path
         Open FilePath For Output As #1
-        Print #1, "Attribute VB_Name = """ & MODULE_NAME & """"
+        Print #1, "Attribute VB_Name = """ & Code.Name & """"
         ' Print current module code to the open vba file
-        Print #1, Code.Lines(CODE_START_LINE_DEFAULT, CodeLineCount)
+        Print #1, Code.Lines(1, CodeLineCount)
         Close #1 ' Close file
 
-        ' * Debug Output
-        If DebugEnabled Then
-            ' Display the output of the current module
-            Debug.Print Code.Lines(CODE_START_LINE_DEFAULT, CodeLineCount)
-        End If
-
-        ' Skip to this label when CodeLineCount < CODE_START_LINE_DEFAULT
+        ' Skip to this label when CodeLineCount < 1
 NextModule:
 
     Next ModuleFile
 End Sub ' VBABackup
 
-' ---
+' ===
 ' Author(s): Travis Gall
 ' Description: Backup all vba macros in the current application.
-' ---
-Private Sub VBARestore()
-    wb.VBProject.VBComponents.Import ("C:\Program Files (x86)\Microsoft Office\Office14\Library\SingleProperty.bas")
-
-    Dim MyObj As Object, MySource As Object, file As Variant
-    file = Dir("c:\testfolder\")
-    While (file <> "")
-        If InStr(file, "test") > 0 Then
-            MsgBox "found " & file
-            Exit Sub
-        End If
-        file = Dir
+' ===
+Public Sub VBARestore()
+    ' ===
+    ' Main
+    ' ===
+    ' Define variable types
+    Dim FolderPath As String
+    Dim ImportFile As Variant
+    Dim ActiveComponents As VBComponents
+    Dim CurrentComponent As VBComponent
+    
+    ' Get ActiveWorkbook Path
+    FolderPath = ActiveWorkbook.Path & VBA_FOLDER
+    
+    ' Get ActiveWorkbook.VBProject VBComponents
+    Set ActiveComponents = ActiveWorkbook.VBProject.VBComponents
+    
+    ' Skip current module if empty
+    If Dir(FolderPath, vbDirectory) = "" Then
+        MkDir FolderPath
+    End If
+    
+    ' Loop through all files in the FolderPath
+    ImportFile = Dir(FolderPath)
+    While (ImportFile <> "")
+        ' Import any files containing .bas
+        If InStr(ImportFile, ".bas") > 0 Then
+            ' Loop through all VBComponents in ActiveWorkbook.VBProject
+            ImportModule = Left(ImportFile, Len(ImportFile) - 4)
+            'If ImportModule <> "VBATools" Then
+                For Each m In ActiveComponents
+                    ' Module already exists in current ActiveWorkbook.VBProject
+                    If m.Name = ImportModule Then
+                        ' Remove exiting module
+                        m.Name = m.Name & "_OLD"
+                        ActiveComponents.Import (FolderPath & ImportFile)
+                        ActiveComponents.Remove m
+                        Exit For ' m
+                    End If ' CurrentComponent.Name = ImportModule
+                Next m
+            'End If ' ImportModule <> "VBATools"
+        End If ' InStr(ImportFile, ".bas") > 0
+        ' Next file
+        ImportFile = Dir
     Wend
 End Sub ' VBARestore()
