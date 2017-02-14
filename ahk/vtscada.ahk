@@ -85,11 +85,29 @@ Sleep, 100
 Send, {Enter}
 Return
 
+#+t::
+Send, {Alt}
+Sleep, 100
+Send, Y01 
+Sleep, 100
+Send, Y09
+Return
+
+#+l::
+Send, {Alt}
+Sleep, 100
+Send, Y01 
+Sleep, 100
+Send, Y10
+Return
+
+/*
 #+l::
 Send, #r
 Sleep, 100
 Send, "C:\Program{Space}Files\VTScada\VTS.exe"{Enter}
 Return
+*/
 
 #+q::
 Send, #r
