@@ -76,7 +76,7 @@ Attribute VBARestore.VB_ProcData.VB_Invoke_Func = "R\n14"
             ImportModule = Left(ImportFile, Len(ImportFile) - 4)
             For Each m In ActiveComponents
                 ' Module already exists in current ActiveWorkbook.VBProject
-                If m.Name = ImportModule Then
+                If m.Name = ImportModule And m.Name <> "ThisWorkbook" Then
                     ' Rename existing module, this is to handle import of VBATools
                     m.Name = m.Name & "_VBATOOLS_RESTORE_" & Int((9999 - 1000 + 1) * Rnd + 1000)
                     ' Import new module, this can be done without collisions due to rename
