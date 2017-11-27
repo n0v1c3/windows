@@ -1,8 +1,6 @@
 Attribute VB_Name = "VBATools"
-' ===
 ' Author(s): Travis Gall and Mike Boiko
 ' Description: A bundle of tools to help with VBA development.
-' ===
 
 ' ===
 ' Install
@@ -32,21 +30,20 @@ Private Const XLSM = ".xlsm"
 ' Description: Backup all vba macros in the current application.
 ' ===
 Public Sub VBABackup()
+Attribute VBABackup.VB_ProcData.VB_Invoke_Func = "B\n14"
     ' Define variable types
     Dim Code As CodeModule
     Dim ModuleFile As VBComponent
 
     ' Create directory if not found
-    If Dir(ActiveWorkbook.Path & "\" & ActiveWorkbook.Name & "-" & VBA_FOLDER, vbDirectory) = "" Then
-        MkDir ActiveWorkbook.Path & "\" & ActiveWorkbook.Name & "-" & VBA_FOLDER
-    End If
+    If Dir(ActiveWorkbook.Path & "\" & ActiveWorkbook.Name & "-" & VBA_FOLDER, vbDirectory) = "" Then MkDir ActiveWorkbook.Path & "\" & ActiveWorkbook.Name & "-" & VBA_FOLDER
 
     ' Loop through each module in the current workbook
     For Each ModuleFile In ActiveWorkbook.VBProject.VBComponents
         ' Don't backup blank files and only backup VBA_TOOLS when in the matching workbook
         If ModuleFile.CodeModule.CountOfLines() > 0 And (ModuleFile.CodeModule.Name <> VBA_TOOLS Or UCase(ActiveWorkbook.Name) = UCase(VBA_TOOLS & XLSM)) Then
             ' Write current module to calculated directory
-            ModuleFile.Export ActiveWorkbook.Path & "\" & ActiveWorkbook.Name & "-" & VBA_FOLDER & ModuleFile.CodeModule.Name & VBA_EXTENSION
+               ModuleFile.Export ActiveWorkbook.Path & "\" & ActiveWorkbook.Name & "-" & VBA_FOLDER & ModuleFile.CodeModule.Name & VBA_EXTENSION
         End If ' ModuleFile.CodeModule.CountOfLines() > 0 And (ModuleFile.CodeModule.Name <> VBA_TOOLS Or UCase(ActiveWorkbook.Name) = UCase(VBA_TOOLS & XLSM))
     Next ModuleFile
 End Sub ' VBABackup
@@ -56,19 +53,19 @@ End Sub ' VBABackup
 ' Description: Backup all vba macros in the current application.
 ' ===
 Public Sub VBARestore()
-    Attribute VBARestore.VB_ProcData.VB_Invoke_Func = "R\n14"
+Attribute VBARestore.VB_ProcData.VB_Invoke_Func = "R\n14"
     ' Define variable types
     Dim FolderPath As String
     Dim ImportFile As Variant
     Dim ActiveComponents As VBComponents
     Dim CurrentComponent As VBComponent
-
+    
     ' Get ActiveWorkbook Path
-    FolderPath = ActiveWorkbook.Path & VBA_FOLDER
-
+    FolderPath = ActiveWorkbook.Path & "\" & ActiveWorkbook.Name & "-" & VBA_FOLDER
+    
     ' Get ActiveWorkbook.VBProject VBComponents
     Set ActiveComponents = ActiveWorkbook.VBProject.VBComponents
-
+    
     ' Loop through all files in the FolderPath
     ImportFile = Dir(FolderPath)
     While (ImportFile <> "")
@@ -77,19 +74,22 @@ Public Sub VBARestore()
             ' Loop through all VBComponents in ActiveWorkbook.VBProject
             ImportModule = Left(ImportFile, Len(ImportFile) - 4)
             For Each m In ActiveComponents
-                ' Module already exists in current ActiveWorkbook.VBProject
-                If m.Name = ImportModule And m.Name <> "ThisWorkbook" Then
-                    ' Rename existing module, this is to handle import of VBATools
-                    m.Name = m.Name & "_VBATOOLS_RESTORE_" & Int((9999 - 1000 + 1) * Rnd + 1000)
-                    ' Import new module, this can be done without collisions due to rename
-                    ActiveComponents.Import (FolderPath & ImportFile)
-                    ' Remove the existing (renamed) module
-                    ActiveComponents.Remove m
-                    Exit For ' m
-                End If ' CurrentComponent.Name = ImportModule
+                If m.Name = ImportModule Then
+                    If m.Name = "ThisWorkbook" Then
+                        ' Currently needs to be done manualy
+                    Else
+                        ' Remove old module and import new module
+                        'On Error Resume Next
+                        ActiveComponents.Remove m
+                        Exit For
+                    End If
+                End If
             Next m
+            If ImportModule <> "ThisWorkbook" Then
+                ActiveComponents.Import (FolderPath & ImportFile)
+            End If
         End If ' InStr(ImportFile, ".bas") > 0
-
+        
         ' Next file
         ImportFile = Dir
     Wend
